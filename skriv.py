@@ -7,7 +7,16 @@ AltGr + HÖGER CTRL          = Kopiera + klistra in automatiskt
 
 import sys
 import os
+import socket
 sys.stdout.reconfigure(line_buffering=True)
+
+# Singleton — bara en instans åt gången
+_lock_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+try:
+    _lock_socket.bind(('127.0.0.1', 47832))
+except OSError:
+    print("Skriv körs redan. Avslutar.")
+    sys.exit(0)
 
 import threading
 import time
@@ -215,6 +224,7 @@ class Skriv:
 
     def save_transcription(self, text, mode):
         try:
+            os.makedirs(DAILY_LOG_DIR, exist_ok=True)
             now = datetime.now()
             date_str = now.strftime("%Y-%m-%d")
             time_str = now.strftime("%H:%M")

@@ -16,7 +16,16 @@ pyperclip requires xclip or xsel:
 
 import sys
 import os
+import socket
 sys.stdout.reconfigure(line_buffering=True)
+
+# Singleton — one instance at a time
+_lock_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+try:
+    _lock_socket.bind(('127.0.0.1', 47832))
+except OSError:
+    print("Already running. Exiting.")
+    sys.exit(0)
 
 import threading
 import time
