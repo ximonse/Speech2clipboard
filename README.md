@@ -1,16 +1,8 @@
 # Speech2Clipboard
 
-Push-to-talk dictation using [OpenAI Whisper](https://github.com/openai/whisper). Hold a hotkey, speak, release — text lands in your clipboard (or gets pasted automatically).
+Push-to-talk dictation using [OpenAI Whisper](https://github.com/openai/whisper). Hold a hotkey, speak, release — text lands in your clipboard (or gets pasted automatically). No cloud. No subscription. Runs entirely on your machine.
 
-No cloud. No subscription. Runs entirely on your machine.
-
-![Status dot: grey=ready, red=recording, orange=transcribing, green=done]
-
----
-
-## How it works
-
-A tiny colored dot sits in the corner of your screen:
+A tiny colored dot in the corner of your screen shows what's happening:
 
 | Color | State |
 |-------|-------|
@@ -19,145 +11,154 @@ A tiny colored dot sits in the corner of your screen:
 | 🟠 Orange | Transcribing |
 | 🟢 Green | Done — text is in clipboard |
 
-Hold the hotkey → speak → release → paste anywhere.
-
 ---
 
 ## Hotkeys
 
-### Windows (`skriv.py`)
+### Windows
 | Keys | Action |
 |------|--------|
-| **Right Shift + Right Ctrl** | Transcribe → clipboard |
-| **AltGr + Right Ctrl** | Transcribe → clipboard + auto-paste |
+| **Right Shift + Right Ctrl** | Record → copy to clipboard |
+| **AltGr + Right Ctrl** | Record → copy + auto-paste |
 
-### Linux (`skriv-linux.py`)
+### Linux
 | Keys | Action |
 |------|--------|
-| **Right Shift + Right Ctrl** | Transcribe → clipboard |
-| **Right Alt + Right Ctrl** | Transcribe → clipboard + auto-paste |
+| **Right Shift + Right Ctrl** | Record → copy to clipboard |
+| **Right Alt + Right Ctrl** | Record → copy + auto-paste |
+
+Hold the keys to record, release to transcribe.
 
 ---
 
 ## Installation
 
-### Requirements
-- Python 3.8+
-- A microphone
-- ~500 MB disk space (Whisper model)
+### Windows
 
-### 1. Install dependencies
-
+**1. Install Python dependencies:**
 ```bash
 pip install -r requirements.txt
 ```
 
-**Linux only** — also install xclip for clipboard support:
-```bash
-sudo apt install xclip      # Debian/Ubuntu
-sudo pacman -S xclip        # Arch
-```
-
-### 2. Run it
-
-**Windows:**
+**2. Run:**
 ```bash
 python skriv.py
 ```
-Or double-click `skriv.vbs` to run silently (no console window).
 
-**Linux:**
-```bash
-python skriv-linux.py
-```
+Or double-click `skriv.bat` for a visible console window (useful for debugging).
 
-Whisper downloads the model (~140 MB for `small`) on first run.
+> **Autostart:** Right-click `skriv.bat` → Create shortcut → move it to `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\`
 
 ---
 
-## Linux: hotkey permissions
+### Linux
 
-pynput needs access to input devices. If hotkeys don't respond:
+You have two options:
+
+#### Option A — Automatic (recommended)
 
 ```bash
+git clone https://github.com/ximonse/Speech2clipboard.git
+cd Speech2clipboard
+bash install.sh
+```
+
+The script will:
+- Install `python3-tk` and `xclip` via your package manager (apt / pacman / dnf)
+- Install Python dependencies
+- Add you to the `input` group so global hotkeys work
+
+> **After running the script:** log out and back in once, then start the app.
+
+#### Option B — Manual
+
+```bash
+# 1. Install system packages
+sudo apt install python3-tk xclip        # Debian/Ubuntu
+sudo pacman -S tk xclip                  # Arch
+sudo dnf install python3-tkinter xclip  # Fedora
+
+# 2. Install Python dependencies
+pip install -r requirements.txt
+
+# 3. Add yourself to the input group (required for global hotkeys)
 sudo usermod -aG input $USER
 # Log out and back in
+
+# 4. Run
+python3 skriv-linux.py
 ```
+
+> **Autostart (systemd):**
+> ```ini
+> # ~/.config/systemd/user/speech2clipboard.service
+> [Unit]
+> Description=Speech2Clipboard
+>
+> [Service]
+> ExecStart=python3 /path/to/skriv-linux.py
+> Restart=on-failure
+>
+> [Install]
+> WantedBy=default.target
+> ```
+> ```bash
+> systemctl --user enable --now speech2clipboard
+> ```
 
 ---
 
-## Configuration
+## First run
 
-Edit the top of `skriv.py` / `skriv-linux.py`:
+On first launch you'll be asked where to save transcriptions:
 
-```python
-WHISPER_MODEL = "small"  # tiny / base / small / medium / large
-```
+- **Yes (Obsidian user)** → pick your Obsidian `daily-notes` or `daily-logs` folder via file dialog
+- **No** → transcriptions are saved to a `logs/` folder next to the script
+
+Your choice is saved to `config.json` and remembered from then on.
+
+> To change the folder later, delete `config.json` and restart.
+
+---
+
+## Whisper model
+
+Whisper downloads the model automatically on first run. The default is `small` (~140 MB).
+
+Edit `WHISPER_MODEL` at the top of the script to change it:
 
 | Model | Size | Speed | Quality |
 |-------|------|-------|---------|
 | `tiny` | 40 MB | Fastest | Basic |
 | `base` | 75 MB | Fast | OK |
-| `small` | 140 MB | Balanced | Good ✓ |
+| `small` | 140 MB | Balanced | **Good — default** |
 | `medium` | 470 MB | Slow | Better |
 | `large` | 1.5 GB | Slowest | Best |
-
-### Save transcriptions to a custom folder
-
-Set the `SKRIV_LOG_DIR` environment variable:
-
-```bash
-# Linux / macOS
-export SKRIV_LOG_DIR="$HOME/notes/dictations"
-
-# Windows
-set SKRIV_LOG_DIR=C:\Users\you\notes\dictations
-```
-
-Without this, logs are saved to a `logs/` folder next to the script.
-
----
-
-## Autostart
-
-### Windows
-1. Right-click `skriv.vbs` → Create shortcut
-2. Move shortcut to: `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\`
-
-### Linux (systemd)
-```ini
-# ~/.config/systemd/user/speech2clipboard.service
-[Unit]
-Description=Speech2Clipboard
-
-[Service]
-ExecStart=python /path/to/skriv-linux.py
-Restart=on-failure
-
-[Install]
-WantedBy=default.target
-```
-```bash
-systemctl --user enable --now speech2clipboard
-```
 
 ---
 
 ## Troubleshooting
 
-**Hotkeys don't work**
-- Windows: make sure you're pressing the *right-side* Shift and Ctrl keys
-- Linux: add yourself to the `input` group (see above)
+**Dot doesn't change color / hotkeys don't respond**
+- Make sure only one instance is running (the app prevents duplicates automatically)
+- Linux: did you log out and back in after `install.sh`?
+- Windows: use the *right-side* Shift and Ctrl keys, not left
 
 **Wrong language transcribed**
-- Whisper auto-detects language. Force a language by setting `language="en"` in the `transcribe()` call
+- Whisper auto-detects language. To force a specific language, find the `transcribe()` call in the script and add `language="en"` (or `"sv"`, `"de"`, etc.)
 
-**No audio recorded**
-- Check microphone permissions (Windows: Settings → Privacy → Microphone)
-- Linux: check `arecord -l` to list available input devices
+**"No module named whisper"**
+```bash
+pip install openai-whisper
+```
+
+**Linux: clipboard doesn't work**
+```bash
+sudo apt install xclip
+```
 
 **Dot disappears off screen**
-- Restart the app
+- Restart the app — the dot resets to the top-left corner
 
 ---
 
