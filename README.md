@@ -1,4 +1,5 @@
 # Speech2Clipboard
+Grattis på födelsedagen 😎
 
 Push-to-talk dictation using [OpenAI Whisper](https://github.com/openai/whisper). Hold a hotkey, speak, release — text lands in your clipboard (or gets pasted automatically). No cloud. No subscription. Runs entirely on your machine.
 
