@@ -29,6 +29,7 @@ except OSError:
 
 import threading
 import time
+import json
 import numpy as np
 import sounddevice as sd
 import whisper
@@ -36,14 +37,53 @@ import pyperclip
 from pynput import keyboard
 from datetime import datetime
 import tkinter as tk
+from tkinter import filedialog, messagebox
 
 # Settings
 WHISPER_MODEL = "small"  # tiny/base/small/medium/large
 SAMPLE_RATE = 16000
 CHANNELS = 1
 
-# Log directory — set SKRIV_LOG_DIR env var to override
-DAILY_LOG_DIR = os.environ.get('SKRIV_LOG_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs'))
+_SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
+_CONFIG_PATH  = os.path.join(_SCRIPT_DIR, 'config.json')
+_DEFAULT_LOGS = os.path.join(_SCRIPT_DIR, 'logs')
+
+
+def _first_run_setup():
+    root = tk.Tk()
+    root.withdraw()
+
+    use_custom = messagebox.askyesno(
+        "Speech2Clipboard — First run",
+        "Do you use Obsidian?\n\n"
+        "Click Yes to choose a folder (e.g. your Obsidian daily-logs).\n"
+        "Click No to use the default (logs/ next to the script)."
+    )
+
+    if use_custom:
+        folder = filedialog.askdirectory(title="Select folder for transcription logs")
+        log_dir = folder if folder else _DEFAULT_LOGS
+    else:
+        log_dir = _DEFAULT_LOGS
+
+    root.destroy()
+
+    with open(_CONFIG_PATH, 'w', encoding='utf-8') as f:
+        json.dump({'log_dir': log_dir}, f, indent=2)
+
+    return log_dir
+
+
+def _load_log_dir():
+    if os.environ.get('SKRIV_LOG_DIR'):
+        return os.environ['SKRIV_LOG_DIR']
+    if os.path.exists(_CONFIG_PATH):
+        with open(_CONFIG_PATH, encoding='utf-8') as f:
+            return json.load(f).get('log_dir', _DEFAULT_LOGS)
+    return _first_run_setup()
+
+
+DAILY_LOG_DIR = _load_log_dir()
 
 # Status indicator colors
 COLOR_IDLE      = "#555555"  # Grey  — ready
